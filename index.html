@@ -147,6 +147,7 @@
     }
     .input-group input[type="text"]:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(108,99,255,0.2);}
 
+    /* MODAL STYLES */
     .modal {
       position: fixed; z-index: 1000; left: 0; top: 0; right: 0; bottom: 0;
       display: none; align-items: center; justify-content: center;
@@ -154,23 +155,38 @@
     }
     .modal-content {
       background: var(--card-bg); padding: 20px 15px 15px 15px; border-radius: var(--radius);
-      min-width: 280px; width: 95vw; max-width: 420px; box-shadow: var(--shadow);
+      min-width: 300px; width: 95vw; max-width: 450px; /* Slightly wider for edit */
+      box-shadow: var(--shadow);
       display: flex; flex-direction: column; gap: 10px; font-family: 'Quicksand', sans-serif;
       align-items: center;
+      max-height: 90vh; /* Overall modal max height */
+      overflow-y: auto; /* Allows modal itself to scroll if content overflows */
     }
-    .modal input, .modal textarea {
+    .emotion-table-container { /* NEW: For scrolling emotion list */
+      width: 100%;
+      max-height: 250px; /* Adjust as needed, e.g., 4-5 items visible */
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 0.8rem;
+      margin-bottom: 15px; /* Space before the "add" section */
+    }
+    .emotion-list-table { width: 100%; /* Takes full width of its container */ border-collapse: collapse; font-size: 0.95rem; }
+    .emotion-list-table th, .emotion-list-table td {
+      padding: 4px 6px; text-align: left; border-bottom: 1px solid #ececf8;
+    }
+    .emotion-list-table th:first-child, .emotion-list-table td:first-child { width: 35px; text-align: center;} /* Emoji */
+    .emotion-list-table th:nth-child(2), .emotion-list-table td:nth-child(2) { width: 35%;} /* Label */
+    .emotion-list-table th:nth-child(3), .emotion-list-table td:nth-child(3) { width: auto;} /* Description */
+    .emotion-list-table th:last-child, .emotion-list-table td:last-child { width: 40px; text-align: center;} /* Delete */
+    .emotion-list-table tr:last-child td { border-bottom: none; }
+
+    .modal input, .modal textarea { /* For add emotion inputs */
       width: 95%; font-size: 1rem; padding: 6px 9px; margin-bottom: 6px;
       border-radius: 0.7rem; border: 1px solid var(--border); background: var(--gray);
       outline: none; font-family: 'Quicksand', sans-serif;
     }
     .modal .btn { margin: 0 5px 0 0; }
-    .emotion-list-table { width: 98%; margin: 0 auto 8px auto; font-size: 0.95rem; }
-    .emotion-list-table th, .emotion-list-table td {
-      padding: 3px 4px; text-align: left; border-bottom: 1px solid #ececf8;
-    }
-    .emotion-list-table th:first-child, .emotion-list-table td:first-child { width: 30px; text-align: center;}
-    .emotion-list-table th:last-child, .emotion-list-table td:last-child { width: 40px; text-align: center;}
-    .emotion-list-table tr:last-child td { border-bottom: none; }
+
 
     .back-button { margin-top: 15px; background-color: var(--gray); color: var(--text);}
     .round-summary-info { margin-top: 10px; font-size: 1.1rem; color: var(--text); }
@@ -179,7 +195,8 @@
       h1 { font-size: 1.9rem; margin-top: 20px;}
       .game-container { padding: 15px 10px 15px 10px; min-height: auto; gap: 10px; }
       .card { padding: 15px 8px; }
-      .modal-content { min-width: 94vw; padding: 15px 8px 10px 8px; }
+      .modal-content { min-width: 94vw; padding: 15px 8px 10px 8px; max-width: 94vw; }
+      .emotion-table-container { max-height: 200px; } /* Shorter scroll area on small screens */
       .scoreboard-container { padding: 8px; }
       .score-table { font-size: 0.9rem; }
       .score-table th, .score-table td { padding: 4px; }
@@ -197,22 +214,32 @@
     <!-- Dynamic content inserted here by JS -->
   </div>
 
+  <!-- EDIT EMOTIONS MODAL: Structure updated for scrolling -->
   <div id="edit-modal" class="modal">
     <div class="modal-content">
       <div style="font-size:1.2rem;font-weight:600;margin-bottom:8px; color:var(--primary); font-family:'Baloo 2', cursive;">Edit Emotions</div>
-      <table class="emotion-list-table" id="emotion-table"></table>
-      <div style="font-size:1rem;margin-top:8px;margin-bottom:4px; color: var(--text); font-weight:500;">Add new emotion:</div>
-      <div class="row" style="gap:5px; align-items:center;">
-        <input id="new-emoji" placeholder="😀" maxlength="2" style="width:35px; text-align:center;" />
-        <input id="new-label" placeholder="Emotion Label" maxlength="24" style="flex-grow:1;" />
+
+      <!-- Scrollable container for the emotion list -->
+      <div class="emotion-table-container">
+        <table class="emotion-list-table" id="emotion-table">
+          <!-- JS will render table header and rows here -->
+        </table>
       </div>
-      <input id="new-desc" placeholder="Short description (e.g., Feeling joy)" maxlength="60" style="width:95%;" />
-      <div class="row">
+
+      <!-- Section for adding a new emotion (always visible) -->
+      <div style="font-size:1rem;margin-top:8px;margin-bottom:4px; color: var(--text); font-weight:500; width:100%; text-align:left; padding-left:5%;">Add new emotion:</div>
+      <div class="row" style="gap:8px; align-items:center; width:90%;">
+        <input id="new-emoji" placeholder="😀" maxlength="2" style="width:40px; text-align:center; padding:8px;" />
+        <input id="new-label" placeholder="Emotion Label" maxlength="24" style="flex-grow:1; padding:8px;" />
+      </div>
+      <input id="new-desc" placeholder="Short description (e.g., Feeling joy)" maxlength="60" style="width:87%; padding:8px; margin-top:5px;" />
+      <div class="row" style="margin-top:15px;">
         <button class="btn btn-success" onclick="addEmotion()">Add Emotion</button>
         <button class="btn btn-secondary" onclick="closeEditModal()">Done</button>
       </div>
     </div>
   </div>
+
 
   <audio id="audio-new" src="https://cdn.pixabay.com/audio/2022/07/26/audio_124bfa697d.mp3" preload="auto"></audio>
   <audio id="audio-correct" src="https://cdn.pixabay.com/audio/2022/07/26/audio_124bfa3d5d.mp3" preload="auto"></audio>
@@ -226,29 +253,27 @@
     "Describe a healthy way to express this emotion.", "Use this emotion in a real-life scenario or sentence.", "Name a coping skill you could use with this emotion.", "How might someone feel in their body with this emotion?", "What could you do if this emotion feels too strong?", "How could you tell someone else you’re feeling this?", "What is an example of acting on this emotion in a positive way?", "How could a friend help you with this emotion?", "Describe a situation where this emotion is appropriate.", "What thought might go with this emotion?", "Share a nonverbal way to show this emotion.", "What color or animal would you connect with this emotion?", "Give one thing you could do to help manage this emotion.", "If you could talk to this emotion, what would you say?", "Name something you could do to calm yourself if you feel this way."
   ];
 
-  // ========== APP STATE ===========
+  // ========== APP STATE (Unchanged from previous version) ===========
   let mode = "";
   let numPlayersOrTeams = 2;
   let playerNames = [];
   let currentPlayerIndex = 0;
-
   let scoresGuess = [];
   let scoresApplied = [];
-
   let timerLength = 60;
   let timer = 0;
   let timerInt = null;
-  let currentEmotion = null; // Holds the emotion for the current charade OR the one just completed
+  let currentEmotion = null;
   let round = 1;
-  let appStep = "setupMode"; // "setupMode", "setupPlayers", "play", "apply", "roundSummary"
+  let appStep = "setupMode";
   let usedIndexes = [];
-  let currentPrompt = ""; // Therapy prompt for the 'apply' or 'roundSummary' state
+  let currentPrompt = "";
 
   // ========== UI ELEMENT GETTERS ==========
   const gameEl = document.getElementById('game');
   const editModalEl = document.getElementById('edit-modal');
 
-  // ========== UI RENDERING ==========
+  // ========== UI RENDERING (Setup and Game screens largely unchanged, focus on modal render) ==========
   function render() {
     gameEl.innerHTML = '';
 
@@ -414,8 +439,7 @@
     `;
   }
 
-
-  // ====== GAME LOGIC AND STATE HANDLERS =======
+  // ====== GAME LOGIC AND STATE HANDLERS (Largely unchanged from previous version) =======
   function setMode(m) {
     mode = m;
     if (m === '1on1') numPlayersOrTeams = 2;
@@ -426,13 +450,12 @@
 
   function setTimerLength(secs) {
     timerLength = secs;
-    if (appStep === 'setupMode') render(); // Re-render setupMode to show selection
+    if (appStep === 'setupMode') render();
   }
 
   function setNumTeams(num) {
     if (mode === 'group') {
       numPlayersOrTeams = num;
-      // Preserve existing names if possible when changing team count
       const oldNames = [...playerNames];
       playerNames = Array(num).fill('').map((_, i) => oldNames[i] || `Team ${i + 1}`);
       renderTeamNameInputs();
@@ -446,7 +469,7 @@
 
   function goBackToModeSelect() {
     appStep = 'setupMode';
-    mode = ''; // Reset mode selection
+    mode = '';
     render();
   }
 
@@ -482,7 +505,7 @@
     } while (usedIndexes.includes(idx) && usedIndexes.length < emotions.length);
 
     usedIndexes.push(idx);
-    currentEmotion = emotions[idx]; // This is the emotion to be acted out
+    currentEmotion = emotions[idx];
     timer = timerLength;
     appStep = 'play';
     renderGameScreen();
@@ -495,8 +518,7 @@
       if (timerDisplay) timerDisplay.textContent = timer;
       if (timer <= 0) {
         clearInterval(timerInt);
-        // Timer ran out for acting phase
-        currentPrompt = getRandomPrompt(); // Get prompt for therapy application
+        currentPrompt = getRandomPrompt();
         appStep = 'apply';
         renderGameScreen();
       }
@@ -504,10 +526,9 @@
   }
 
   function skipEmotion() {
-    // Player skips current emotion, gets a new one within the same turn & timer.
     if (timerInt) clearInterval(timerInt);
-    playSound('audio-new'); // Sound for new emotion
-    startNewCharadeForCurrentPlayer(); // Gets a new emotion and restarts timer
+    playSound('audio-new');
+    startNewCharadeForCurrentPlayer();
   }
 
   function showHint() {
@@ -517,7 +538,7 @@
   function revealEmotion() {
     if (timerInt) clearInterval(timerInt);
     currentPrompt = getRandomPrompt();
-    appStep = 'apply'; // Move to therapy application step
+    appStep = 'apply';
     renderGameScreen();
   }
 
@@ -536,9 +557,6 @@
   }
 
   function proceedToNextTurnSummary(pointAwarded) {
-    // currentEmotion and currentPrompt are already set from the 'apply' step
-    // or from reveal/guessedCorrect.
-    // The purpose here is to transition to the summary screen.
     appStep = 'roundSummary';
     renderGameScreen();
   }
@@ -549,8 +567,8 @@
     if (currentPlayerIndex === 0) {
       round++;
     }
-    currentPrompt = ""; // Clear prompt for the new turn
-    startNewCharadeForCurrentPlayer(); // This will pick a new emotion for the new player
+    currentPrompt = "";
+    startNewCharadeForCurrentPlayer();
   }
 
   function confirmEndGame() {
@@ -575,7 +593,6 @@
     render();
   }
 
-  // ======= UTILS =======
   function getRandomPrompt() {
     if (prompts.length === 0) return "No prompts available.";
     return prompts[Math.floor(Math.random() * prompts.length)];
@@ -596,33 +613,49 @@
   function closeEditModal() {
     editModalEl.style.display = 'none';
   }
-  function renderEmotionTable() {
-    let t = document.getElementById('emotion-table');
-    t.innerHTML = `<thead><tr>
-      <th>Emoji</th><th>Label</th><th>Description</th><th>Del</th>
-    </tr></thead><tbody>` + emotions.map((e,i) =>
+
+  function renderEmotionTable() { // Updated to ensure header is always there
+    let tableHTML = `<thead><tr>
+      <th>😀</th><th>Label</th><th>Description</th><th>🗑️</th>
+    </tr></thead><tbody>`;
+    tableHTML += emotions.map((e,i) =>
       `<tr>
         <td>${e.emoji}</td>
         <td>${e.label}</td>
         <td>${e.desc}</td>
-        <td><button class="btn btn-danger btn-small" onclick="deleteEmotion(${i})">✕</button></td>
-      </tr>`).join('') + `</tbody>`;
+        <td><button class="btn btn-danger btn-small" style="padding: 3px 6px;" onclick="deleteEmotion(${i})">✕</button></td>
+      </tr>`).join('');
+    tableHTML += `</tbody>`;
+    document.getElementById('emotion-table').innerHTML = tableHTML;
   }
+
   function addEmotion() {
-    const emoji = document.getElementById('new-emoji').value.trim() || '❓';
-    const label = document.getElementById('new-label').value.trim();
-    const desc = document.getElementById('new-desc').value.trim();
-    if (!label || !desc) { alert('Please enter emotion label and description.'); return; }
+    const emojiInput = document.getElementById('new-emoji');
+    const labelInput = document.getElementById('new-label');
+    const descInput = document.getElementById('new-desc');
+
+    const emoji = emojiInput.value.trim() || '❓'; // Default if empty
+    const label = labelInput.value.trim();
+    const desc = descInput.value.trim();
+
+    if (!label || !desc) {
+      alert('Please enter both an emotion label and a description.');
+      return;
+    }
     emotions.push({emoji, label, desc});
-    document.getElementById('new-emoji').value = '';
-    document.getElementById('new-label').value = '';
-    document.getElementById('new-desc').value = '';
-    renderEmotionTable();
+    emojiInput.value = ''; // Clear fields
+    labelInput.value = '';
+    descInput.value = '';
+    renderEmotionTable(); // Refresh the list in the modal
   }
+
   function deleteEmotion(idx) {
-    if (emotions.length <= 5) { alert('Cannot delete. A minimum of 5 emotions is recommended.'); return; }
+    if (emotions.length <= 5) { // Keep a minimum number of emotions
+      alert('Cannot delete. A minimum of 5 emotions is recommended for gameplay.');
+      return;
+    }
     emotions.splice(idx,1);
-    renderEmotionTable();
+    renderEmotionTable(); // Refresh the list in the modal
   }
 
   // ========= INIT =========

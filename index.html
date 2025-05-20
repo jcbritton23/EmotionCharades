@@ -103,7 +103,7 @@
         color: var(--primary);
         margin-bottom: 8px;
         padding: 6px 12px;
-        background-color: #eef2ff; /* Light primary */
+        background-color: #eef2ff;
         border-radius: 0.8rem;
         border: 1px solid var(--border);
     }
@@ -130,10 +130,9 @@
     .score-table tr:last-child td { border-bottom: none; }
     .score-table .current-player-row td {
       font-weight: bold;
-      background-color: #fff8dc; /* Light accent */
+      background-color: #fff8dc;
     }
     .score-table .current-player-row td:first-child { color: var(--secondary); }
-
 
     .edit-link {
       color: var(--primary); font-size: 0.95rem; text-decoration: underline;
@@ -147,7 +146,6 @@
         font-size: 1rem; font-family: 'Quicksand', sans-serif; background-color: #fff;
     }
     .input-group input[type="text"]:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(108,99,255,0.2);}
-
 
     .modal {
       position: fixed; z-index: 1000; left: 0; top: 0; right: 0; bottom: 0;
@@ -170,11 +168,12 @@
     .emotion-list-table th, .emotion-list-table td {
       padding: 3px 4px; text-align: left; border-bottom: 1px solid #ececf8;
     }
-    .emotion-list-table th:first-child, .emotion-list-table td:first-child { width: 30px; text-align: center;} /* Emoji */
-    .emotion-list-table th:last-child, .emotion-list-table td:last-child { width: 40px; text-align: center;} /* Delete */
+    .emotion-list-table th:first-child, .emotion-list-table td:first-child { width: 30px; text-align: center;}
+    .emotion-list-table th:last-child, .emotion-list-table td:last-child { width: 40px; text-align: center;}
     .emotion-list-table tr:last-child td { border-bottom: none; }
 
     .back-button { margin-top: 15px; background-color: var(--gray); color: var(--text);}
+    .round-summary-info { margin-top: 10px; font-size: 1.1rem; color: var(--text); }
 
     @media (max-width: 500px) {
       h1 { font-size: 1.9rem; margin-top: 20px;}
@@ -228,7 +227,7 @@
   ];
 
   // ========== APP STATE ===========
-  let mode = ""; // "1on1" or "group"
+  let mode = "";
   let numPlayersOrTeams = 2;
   let playerNames = [];
   let currentPlayerIndex = 0;
@@ -239,11 +238,11 @@
   let timerLength = 60;
   let timer = 0;
   let timerInt = null;
-  let currentEmotion = null;
-  let round = 1; // A full round = all players/teams have had one turn
-  let appStep = "setupMode"; // "setupMode", "setupPlayers", "play", "apply"
+  let currentEmotion = null; // Holds the emotion for the current charade OR the one just completed
+  let round = 1;
+  let appStep = "setupMode"; // "setupMode", "setupPlayers", "play", "apply", "roundSummary"
   let usedIndexes = [];
-  let currentPrompt = "";
+  let currentPrompt = ""; // Therapy prompt for the 'apply' or 'roundSummary' state
 
   // ========== UI ELEMENT GETTERS ==========
   const gameEl = document.getElementById('game');
@@ -251,15 +250,15 @@
 
   // ========== UI RENDERING ==========
   function render() {
-    gameEl.innerHTML = ''; // Clear previous content
+    gameEl.innerHTML = '';
 
     if (appStep === 'setupMode') {
       gameEl.innerHTML = `
         <div class="card">
           <div class="setup-label">Choose Game Mode:</div>
           <div class="row">
-            <button class="btn" onclick="setMode('1on1')">1-on-1 Play</button>
-            <button class="btn btn-secondary" onclick="setMode('group')">Team / Group Play</button>
+            <button class="btn ${mode === '1on1' ? 'selected' : ''}" onclick="setMode('1on1')">1-on-1 Play</button>
+            <button class="btn ${mode === 'group' ? 'selected' : 'btn-secondary'}" onclick="setMode('group')">Team / Group Play</button>
           </div>
           <div style="margin-top:25px;">
             <div class="setup-label">Round Timer:</div>
@@ -306,9 +305,9 @@
           <button class="btn back-button" onclick="goBackToModeSelect()">Back to Mode Select</button>
         </div>
       `;
-      if (mode === 'group') renderTeamNameInputs(); // For group mode, render inputs after numTeams is potentially set
-    } else if (appStep === 'play' || appStep === 'apply') {
-      renderPlayScreen();
+      if (mode === 'group') renderTeamNameInputs();
+    } else if (appStep === 'play' || appStep === 'apply' || appStep === 'roundSummary') {
+      renderGameScreen();
     }
   }
 
@@ -316,10 +315,11 @@
     if (mode !== 'group' || !document.getElementById('team-name-inputs')) return;
     let teamInputsHTML = '';
     for (let i = 0; i < numPlayersOrTeams; i++) {
+      const defaultName = playerNames[i] || `Team ${i + 1}`;
       teamInputsHTML += `
         <div class="input-group">
           <label for="player${i}">Team ${i + 1} Name:</label>
-          <input type="text" id="player${i}" value="Team ${i + 1}" maxlength="15">
+          <input type="text" id="player${i}" value="${defaultName}" maxlength="15">
         </div>
       `;
     }
@@ -329,7 +329,7 @@
   function renderScoreboard() {
     let tableRowsHTML = '';
     for (let i = 0; i < numPlayersOrTeams; i++) {
-      const isCurrent = i === currentPlayerIndex;
+      const isCurrent = i === currentPlayerIndex && (appStep === 'play' || appStep === 'apply');
       tableRowsHTML += `
         <tr class="${isCurrent ? 'current-player-row' : ''}">
           <td>${playerNames[i] || `P${i+1}`}</td>
@@ -342,61 +342,100 @@
       <div class="scoreboard-container">
         <div class="scoreboard-title">Scoreboard - Round ${round}</div>
         <table class="score-table">
-          <thead><tr><th>Player/Team</th><th>Guessed</th><th>Applied</th></tr></thead>
+          <thead><tr><th>Player/Team</th><th>Guessed</th><th>Therapy Pts</th></tr></thead>
           <tbody>${tableRowsHTML}</tbody>
         </table>
       </div>
     `;
   }
 
-  function renderPlayScreen() {
+  function renderGameScreen() {
+    let mainContentHTML = '';
+    let buttonsHTML = '';
+
+    if (appStep === 'play') {
+      mainContentHTML = `
+        <div class="current-turn-indicator">It's ${playerNames[currentPlayerIndex]}'s turn to act!</div>
+        <div class="card">
+          <span class="emotion-emoji">${currentEmotion.emoji}</span>
+          <div class="emotion-label">${currentEmotion.label}</div>
+          <div class="emotion-desc">${currentEmotion.desc}</div>
+        </div>
+        <div class="timer" id="timer">${timer}</div>
+      `;
+      buttonsHTML = `
+        <div class="row">
+          <button class="btn btn-small" onclick="skipEmotion()">Skip this Emotion</button>
+          <button class="btn btn-small btn-secondary" onclick="showHint()">Hint</button>
+          <button class="btn btn-small btn-accent" onclick="revealEmotion()">Reveal Emotion</button>
+        </div>
+        <button class="btn btn-success" style="width:95%;margin-top:10px;" onclick="guessedCorrect()">Correct Guess!</button>
+      `;
+    } else if (appStep === 'apply') {
+      mainContentHTML = `
+        <div class="current-turn-indicator">${playerNames[currentPlayerIndex]} guessed:</div>
+        <div class="card">
+          <span class="emotion-emoji">${currentEmotion.emoji}</span>
+          <div class="emotion-label">${currentEmotion.label}</div>
+          <div class="emotion-desc">${currentEmotion.desc}</div>
+          <div class="prompt">${currentPrompt}</div>
+        </div>
+      `;
+      buttonsHTML = `
+        <div class="row" style="margin-top:10px;">
+           <button class="btn btn-success" onclick="awardTherapyPoint()">Therapy Point! 🎉</button>
+           <button class="btn" onclick="proceedToNextTurnSummary(false)">Continue (No Point)</button>
+         </div>
+      `;
+    } else if (appStep === 'roundSummary') {
+      const nextPlayerIndex = (currentPlayerIndex + 1) % numPlayersOrTeams;
+      mainContentHTML = `
+        <div class="round-summary-info">Turn for ${playerNames[currentPlayerIndex]} complete.</div>
+        <div class="card">
+          <div style="font-size:1rem; margin-bottom:5px;">Last Emotion:</div>
+          <span class="emotion-emoji">${currentEmotion.emoji}</span>
+          <div class="emotion-label">${currentEmotion.label}</div>
+          <div class="emotion-desc">${currentEmotion.desc}</div>
+          ${currentPrompt ? `<div class="prompt" style="font-size:0.95rem;">Prompt: ${currentPrompt}</div>` : ''}
+        </div>
+      `;
+      buttonsHTML = `
+        <button class="btn btn-accent" style="width:95%; margin-top:15px;" onclick="startNextPlayersTurn()">
+          Ready, ${playerNames[nextPlayerIndex]}? Start Turn!
+        </button>
+      `;
+    }
+
     gameEl.innerHTML = `
       ${renderScoreboard()}
-      <div class="current-turn-indicator">It's ${playerNames[currentPlayerIndex]}'s turn to act!</div>
-      <div class="card">
-        <span class="emotion-emoji">${currentEmotion.emoji}</span>
-        <div class="emotion-label">${currentEmotion.label}</div>
-        <div class="emotion-desc">${currentEmotion.desc}</div>
-        ${appStep === 'apply' ? `<div class="prompt">${currentPrompt}</div>` : ''}
-      </div>
-      ${appStep === 'play' ? `<div class="timer" id="timer">${timer}</div>` : ''}
-      <div class="row">
-        ${appStep === 'play' ? `
-          <button class="btn btn-small" onclick="skipEmotion()">Skip</button>
-          <button class="btn btn-small btn-secondary" onclick="showHint()">Hint</button>
-          <button class="btn btn-small btn-accent" onclick="revealEmotion()">Reveal</button>
-        ` : ''}
-      </div>
-      ${appStep === 'play' ?
-        `<button class="btn btn-success" style="width:95%;margin-top:10px;" onclick="guessedCorrect()">Correct Guess!</button>` :
-        `<div class="row" style="margin-top:10px;">
-           <button class="btn btn-success" onclick="markApplied()">Mark as Applied 👍</button>
-           <button class="btn" onclick="advanceTurn()">Next Turn (No Point)</button>
-         </div>`
-      }
+      ${mainContentHTML}
+      ${buttonsHTML}
       <button class="btn back-button btn-small" style="margin-top:15px;" onclick="confirmEndGame()">End Game</button>
     `;
   }
+
 
   // ====== GAME LOGIC AND STATE HANDLERS =======
   function setMode(m) {
     mode = m;
     if (m === '1on1') numPlayersOrTeams = 2;
-    else if (m === 'group') numPlayersOrTeams = 2; // Default to 2 teams for group initially
+    else if (m === 'group') numPlayersOrTeams = 2;
     appStep = 'setupPlayers';
     render();
   }
 
   function setTimerLength(secs) {
     timerLength = secs;
-    render(); // Re-render setupMode to show selection
+    if (appStep === 'setupMode') render(); // Re-render setupMode to show selection
   }
 
   function setNumTeams(num) {
     if (mode === 'group') {
       numPlayersOrTeams = num;
-      renderTeamNameInputs(); // Update the input fields for team names
-      // Also, re-highlight the selected button
+      // Preserve existing names if possible when changing team count
+      const oldNames = [...playerNames];
+      playerNames = Array(num).fill('').map((_, i) => oldNames[i] || `Team ${i + 1}`);
+      renderTeamNameInputs();
       const buttons = gameEl.querySelectorAll('#setupPlayers .row button');
       buttons.forEach(btn => btn.classList.remove('selected'));
       if (num === 2) buttons[0].classList.add('selected');
@@ -407,6 +446,7 @@
 
   function goBackToModeSelect() {
     appStep = 'setupMode';
+    mode = ''; // Reset mode selection
     render();
   }
 
@@ -416,29 +456,25 @@
     scoresApplied = [];
     for (let i = 0; i < numPlayersOrTeams; i++) {
       const nameInput = document.getElementById(`player${i}`);
-      playerNames.push(nameInput ? (nameInput.value.trim() || (mode === '1on1' ? `Player ${i+1}` : `Team ${i+1}`)) : (mode === '1on1' ? `Player ${i+1}` : `Team ${i+1}`));
+      const name = nameInput ? (nameInput.value.trim() || (mode === '1on1' ? `Player ${i+1}` : `Team ${i+1}`)) : (mode === '1on1' ? `Player ${i+1}` : `Team ${i+1}`);
+      if (name.length === 0) {
+        alert("Please enter a name for each player/team.");
+        return;
+      }
+      playerNames.push(name);
       scoresGuess.push(0);
       scoresApplied.push(0);
     }
-
-    if (playerNames.some(name => name.length === 0)) {
-        alert("Please enter names for all players/teams.");
-        return;
-    }
-
     currentPlayerIndex = 0;
     round = 1;
     usedIndexes = [];
-    appStep = 'play';
-    pickNewEmotion();
+    startNewCharadeForCurrentPlayer();
   }
 
-
-  function pickNewEmotion() {
+  function startNewCharadeForCurrentPlayer() {
     if (usedIndexes.length >= emotions.length) {
         alert("All emotions shown! Resetting list for more rounds or end game.");
-        usedIndexes = []; // Reset to allow replay
-        // Or could transition to an "end game" summary here
+        usedIndexes = [];
     }
     let idx;
     do {
@@ -446,10 +482,10 @@
     } while (usedIndexes.includes(idx) && usedIndexes.length < emotions.length);
 
     usedIndexes.push(idx);
-    currentEmotion = emotions[idx];
+    currentEmotion = emotions[idx]; // This is the emotion to be acted out
     timer = timerLength;
     appStep = 'play';
-    renderPlayScreen();
+    renderGameScreen();
     playSound('audio-new');
 
     if (timerInt) clearInterval(timerInt);
@@ -459,54 +495,62 @@
       if (timerDisplay) timerDisplay.textContent = timer;
       if (timer <= 0) {
         clearInterval(timerInt);
-        // Timer ran out, move to therapy application for the current player
+        // Timer ran out for acting phase
+        currentPrompt = getRandomPrompt(); // Get prompt for therapy application
         appStep = 'apply';
-        currentPrompt = getRandomPrompt();
-        renderPlayScreen();
+        renderGameScreen();
       }
     }, 1000);
   }
 
-  function advanceTurn() {
-    if (timerInt) clearInterval(timerInt);
-    currentPlayerIndex = (currentPlayerIndex + 1) % numPlayersOrTeams;
-    if (currentPlayerIndex === 0) { // A full cycle of turns completed
-      round++;
-    }
-    pickNewEmotion();
-  }
-
   function skipEmotion() {
-    // Skipping means this player's turn for this emotion is over.
-    // No points awarded. Move to next player.
-    advanceTurn();
+    // Player skips current emotion, gets a new one within the same turn & timer.
+    if (timerInt) clearInterval(timerInt);
+    playSound('audio-new'); // Sound for new emotion
+    startNewCharadeForCurrentPlayer(); // Gets a new emotion and restarts timer
   }
 
   function showHint() {
-    alert("Hint: " + currentEmotion.desc); // Simple alert, could be integrated into UI
+    alert("Hint: " + currentEmotion.desc);
   }
 
   function revealEmotion() {
-    // Player gives up on guessing, move to therapy application for current player
     if (timerInt) clearInterval(timerInt);
-    appStep = 'apply';
     currentPrompt = getRandomPrompt();
-    renderPlayScreen();
+    appStep = 'apply'; // Move to therapy application step
+    renderGameScreen();
   }
 
   function guessedCorrect() {
     if (timerInt) clearInterval(timerInt);
     scoresGuess[currentPlayerIndex]++;
-    appStep = 'apply';
     currentPrompt = getRandomPrompt();
+    appStep = 'apply';
     playSound('audio-correct');
-    renderPlayScreen();
+    renderGameScreen();
   }
 
-  function markApplied() {
+  function awardTherapyPoint() {
     scoresApplied[currentPlayerIndex]++;
-    // After marking applied, current player's turn for this emotion is fully done. Move to next player.
-    advanceTurn();
+    proceedToNextTurnSummary(true);
+  }
+
+  function proceedToNextTurnSummary(pointAwarded) {
+    // currentEmotion and currentPrompt are already set from the 'apply' step
+    // or from reveal/guessedCorrect.
+    // The purpose here is to transition to the summary screen.
+    appStep = 'roundSummary';
+    renderGameScreen();
+  }
+
+  function startNextPlayersTurn() {
+    if (timerInt) clearInterval(timerInt);
+    currentPlayerIndex = (currentPlayerIndex + 1) % numPlayersOrTeams;
+    if (currentPlayerIndex === 0) {
+      round++;
+    }
+    currentPrompt = ""; // Clear prompt for the new turn
+    startNewCharadeForCurrentPlayer(); // This will pick a new emotion for the new player
   }
 
   function confirmEndGame() {
@@ -526,6 +570,8 @@
     round = 1;
     timerLength = 60;
     appStep = 'setupMode';
+    currentEmotion = null;
+    currentPrompt = "";
     render();
   }
 
@@ -538,7 +584,7 @@
     const sound = document.getElementById(id);
     if (sound) {
         sound.currentTime = 0;
-        sound.play().catch(e => console.warn("Sound play failed:", e)); // Use warn for non-critical errors
+        sound.play().catch(e => console.warn("Sound play failed:", e));
     }
   }
 
@@ -581,7 +627,7 @@
 
   // ========= INIT =========
   window.onload = () => {
-      render(); // Initial render of the setupMode screen
+      render();
   };
   </script>
 </body>

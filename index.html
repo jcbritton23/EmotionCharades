@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Emotion Charades</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700&family=Quicksand:wght@500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #6c63ff;
+      --secondary: #ff6584;
+      --accent: #ffe162;
+      --background: #f5f7fa;
+      --card-bg: #ffffff;
+      --success: #6ee7b7;
+      --danger: #ff8080;
+      --text: #353858;
+      --gray: #ededf0;
+      --border: #deddf5;
+      --shadow: 0 2px 18px 0 rgba(80,82,112,.10);
+      --radius: 1.5rem;
+    }
+    body {
+      background: var(--background);
+      font-family: 'Quicksand', 'Baloo 2', Arial, sans-serif;
+      margin: 0;
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-bottom: 30px;
+    }
+    h1 {
+      font-family: 'Baloo 2', cursive;
+      color: var(--primary);
+      margin: 28px 0 15px 0;
+      letter-spacing: 1.5px;
+      font-size: 2.2rem;
+    }
+    .game-container {
+      background: var(--card-bg);
+      margin: 10px auto 0 auto;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 25px 18px 22px 18px;
+      max-width: 480px;
+      width: 95vw;
+      min-height: 520px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .card {
+      background: var(--gray);
+      border-radius: var(--radius);
+      padding: 20px 12px;
+      margin-bottom: 10px;
+      text-align: center;
+      width: 95%;
+      box-shadow: 0 1px 6px 0 rgba(80,82,112,.07);
+    }
+    .emotion-emoji { font-size: 3rem; margin-bottom: 6px; display: block; }
+    .emotion-label {
+      font-size: 1.6rem; font-weight: 700; color: var(--secondary);
+      font-family: 'Baloo 2', cursive; letter-spacing: 1px;
+    }
+    .emotion-desc { font-size: 1rem; margin-top: 1px; color: #555; }
+    .prompt {
+      background: var(--accent); border-radius: 1rem; color: #433a1a;
+      padding: 8px 14px; margin: 10px 0 5px 0; font-size: 1.05rem;
+      font-weight: 600; box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    }
+    .row { display: flex; gap: 10px; width: 100%; justify-content: center; margin-top: 5px; flex-wrap: wrap; }
+    .btn {
+      border: none; border-radius: 1rem; background: var(--primary); color: white;
+      font-size: 1.05rem; font-family: 'Quicksand', sans-serif; padding: 10px 16px;
+      font-weight: 600; box-shadow: 0 1px 8px 0 rgba(80,82,112,.11); cursor: pointer;
+      margin: 3px; transition: background 0.15s, box-shadow 0.2s, transform 0.1s; outline: none;
+    }
+    .btn:hover { opacity: 0.9; }
+    .btn:active { transform: translateY(1px); background: var(--secondary); }
+    .btn-secondary { background: var(--secondary); color: #fff; }
+    .btn-accent { background: var(--accent); color: #433a1a; }
+    .btn-success { background: var(--success); color: #155724; }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn.selected {
+        box-shadow: 0 0 0 3px var(--primary), 0 1px 8px 0 rgba(80,82,112,.11);
+        background-color: var(--primary); color: white; transform: scale(1.03);
+    }
+     .btn-small { padding: 6px 10px; font-size: 0.9rem; border-radius: 0.8rem;}
+
+    .timer {
+      font-size: 1.9rem; font-family: 'Baloo 2', cursive; color: var(--primary);
+      margin-top: 5px; font-weight: 700; letter-spacing: 1.5px;
+      background: var(--gray); border-radius: 0.8rem; padding: 4px 15px;
+      display: inline-block;
+    }
+    .current-turn-indicator {
+        font-size: 1.2rem;
+        font-family: 'Baloo 2', cursive;
+        color: var(--primary);
+        margin-bottom: 8px;
+        padding: 6px 12px;
+        background-color: #eef2ff; /* Light primary */
+        border-radius: 0.8rem;
+        border: 1px solid var(--border);
+    }
+    .scoreboard-container {
+      width: 98%;
+      background: var(--gray);
+      padding: 10px;
+      border-radius: 1rem;
+      margin: 10px 0 5px 0;
+      font-family: 'Quicksand', sans-serif;
+    }
+    .scoreboard-title {
+      font-family: 'Baloo 2', cursive;
+      color: var(--primary);
+      font-size: 1.2rem;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+    .score-table { width: 100%; border-collapse: collapse; font-size: 0.95rem;}
+    .score-table th, .score-table td {
+      padding: 5px; text-align: left; border-bottom: 1px solid var(--border);
+    }
+    .score-table th { color: var(--secondary); font-weight: 600; }
+    .score-table tr:last-child td { border-bottom: none; }
+    .score-table .current-player-row td {
+      font-weight: bold;
+      background-color: #fff8dc; /* Light accent */
+    }
+    .score-table .current-player-row td:first-child { color: var(--secondary); }
+
+
+    .edit-link {
+      color: var(--primary); font-size: 0.95rem; text-decoration: underline;
+      cursor: pointer; margin: 10px 0 0 0; font-family: 'Quicksand', sans-serif;
+    }
+    .setup-label { font-size: 1.1rem; margin-bottom: 8px; font-weight: 600; color: var(--primary); font-family: 'Baloo 2', cursive;}
+    .input-group { margin-bottom: 12px; width: 90%; text-align: left;}
+    .input-group label { display: block; font-size: 0.95rem; margin-bottom: 3px; color: #444; font-weight: 500;}
+    .input-group input[type="text"] {
+        width: calc(100% - 20px); padding: 9px; border-radius: 0.7rem; border: 1px solid var(--border);
+        font-size: 1rem; font-family: 'Quicksand', sans-serif; background-color: #fff;
+    }
+    .input-group input[type="text"]:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(108,99,255,0.2);}
+
+
+    .modal {
+      position: fixed; z-index: 1000; left: 0; top: 0; right: 0; bottom: 0;
+      display: none; align-items: center; justify-content: center;
+      background: rgba(44, 40, 80, 0.2); backdrop-filter: blur(3px);
+    }
+    .modal-content {
+      background: var(--card-bg); padding: 20px 15px 15px 15px; border-radius: var(--radius);
+      min-width: 280px; width: 95vw; max-width: 420px; box-shadow: var(--shadow);
+      display: flex; flex-direction: column; gap: 10px; font-family: 'Quicksand', sans-serif;
+      align-items: center;
+    }
+    .modal input, .modal textarea {
+      width: 95%; font-size: 1rem; padding: 6px 9px; margin-bottom: 6px;
+      border-radius: 0.7rem; border: 1px solid var(--border); background: var(--gray);
+      outline: none; font-family: 'Quicksand', sans-serif;
+    }
+    .modal .btn { margin: 0 5px 0 0; }
+    .emotion-list-table { width: 98%; margin: 0 auto 8px auto; font-size: 0.95rem; }
+    .emotion-list-table th, .emotion-list-table td {
+      padding: 3px 4px; text-align: left; border-bottom: 1px solid #ececf8;
+    }
+    .emotion-list-table th:first-child, .emotion-list-table td:first-child { width: 30px; text-align: center;} /* Emoji */
+    .emotion-list-table th:last-child, .emotion-list-table td:last-child { width: 40px; text-align: center;} /* Delete */
+    .emotion-list-table tr:last-child td { border-bottom: none; }
+
+    .back-button { margin-top: 15px; background-color: var(--gray); color: var(--text);}
+
+    @media (max-width: 500px) {
+      h1 { font-size: 1.9rem; margin-top: 20px;}
+      .game-container { padding: 15px 10px 15px 10px; min-height: auto; gap: 10px; }
+      .card { padding: 15px 8px; }
+      .modal-content { min-width: 94vw; padding: 15px 8px 10px 8px; }
+      .scoreboard-container { padding: 8px; }
+      .score-table { font-size: 0.9rem; }
+      .score-table th, .score-table td { padding: 4px; }
+      .btn { font-size: 1rem; padding: 9px 14px;}
+      .emotion-emoji { font-size: 2.6rem; }
+      .emotion-label { font-size: 1.4rem; }
+      .input-group input[type="text"] { padding: 8px; }
+      .current-turn-indicator { font-size: 1.1rem; padding: 5px 10px;}
+    }
+  </style>
+</head>
+<body>
+  <h1>Emotion Charades</h1>
+  <div class="game-container" id="game">
+    <!-- Dynamic content inserted here by JS -->
+  </div>
+
+  <div id="edit-modal" class="modal">
+    <div class="modal-content">
+      <div style="font-size:1.2rem;font-weight:600;margin-bottom:8px; color:var(--primary); font-family:'Baloo 2', cursive;">Edit Emotions</div>
+      <table class="emotion-list-table" id="emotion-table"></table>
+      <div style="font-size:1rem;margin-top:8px;margin-bottom:4px; color: var(--text); font-weight:500;">Add new emotion:</div>
+      <div class="row" style="gap:5px; align-items:center;">
+        <input id="new-emoji" placeholder="😀" maxlength="2" style="width:35px; text-align:center;" />
+        <input id="new-label" placeholder="Emotion Label" maxlength="24" style="flex-grow:1;" />
+      </div>
+      <input id="new-desc" placeholder="Short description (e.g., Feeling joy)" maxlength="60" style="width:95%;" />
+      <div class="row">
+        <button class="btn btn-success" onclick="addEmotion()">Add Emotion</button>
+        <button class="btn btn-secondary" onclick="closeEditModal()">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <audio id="audio-new" src="https://cdn.pixabay.com/audio/2022/07/26/audio_124bfa697d.mp3" preload="auto"></audio>
+  <audio id="audio-correct" src="https://cdn.pixabay.com/audio/2022/07/26/audio_124bfa3d5d.mp3" preload="auto"></audio>
+
+  <script>
+  // ======= CORE DATA (Emotions & Prompts - Unchanged) =======
+  let emotions = [
+    {emoji:"😄", label:"Happy", desc:"Feeling joy or pleasure."}, {emoji:"😢", label:"Sad", desc:"Feeling unhappy or sorrowful."}, {emoji:"😠", label:"Angry", desc:"Feeling mad or upset."}, {emoji:"😱", label:"Afraid", desc:"Feeling scared or anxious."}, {emoji:"😮", label:"Surprised", desc:"Feeling unexpected shock."}, {emoji:"😔", label:"Disappointed", desc:"Let down or dissatisfied."}, {emoji:"😍", label:"Loving", desc:"Caring deeply about someone."}, {emoji:"🤔", label:"Confused", desc:"Not understanding or uncertain."}, {emoji:"😳", label:"Embarrassed", desc:"Feeling awkward or shy."}, {emoji:"😌", label:"Relieved", desc:"Feeling at ease after worry."}, {emoji:"🥺", label:"Hopeful", desc:"Wanting something to happen."}, {emoji:"😤", label:"Frustrated", desc:"Feeling stuck or blocked."}, {emoji:"😏", label:"Proud", desc:"Feeling good about yourself."}, {emoji:"🤪", label:"Silly", desc:"Wanting to be playful."}, {emoji:"😐", label:"Indifferent", desc:"Not caring much either way."}, {emoji:"🥵", label:"Overwhelmed", desc:"Too much to handle."}, {emoji:"🥱", label:"Bored", desc:"Not interested or engaged."}, {emoji:"🥹", label:"Grateful", desc:"Appreciative of something."}, {emoji:"😕", label:"Uncertain", desc:"Not sure what to do."}, {emoji:"😩", label:"Exhausted", desc:"Very tired, no energy."}, {emoji:"🥳", label:"Excited", desc:"Looking forward to something."}, {emoji:"😇", label:"Content", desc:"Peaceful and satisfied."}, {emoji:"😬", label:"Nervous", desc:"Worried about what might happen."}, {emoji:"🤗", label:"Comforted", desc:"Feeling supported or cared for."}, {emoji:"🥲", label:"Bittersweet", desc:"Happy and sad together."}, {emoji:"😶‍🌫️", label:"Dazed", desc:"Out of it or foggy."}, {emoji:"🤯", label:"Amazed", desc:"Blown away or shocked."}, {emoji:"😎", label:"Confident", desc:"Feeling sure of yourself."}, {emoji:"🥺", label:"Lonely", desc:"Feeling alone or left out."}, {emoji:"🥴", label:"Ashamed", desc:"Feeling bad about an action."}, {emoji:"🤩", label:"Enthusiastic", desc:"Really eager and excited."}, {emoji:"😒", label:"Annoyed", desc:"A little bit bothered."},  {emoji:"😪", label:"Sleepy", desc:"Ready for rest or nap."}, {emoji:"🫠", label:"Anxious", desc:"Worried or uneasy."}, {emoji:"😟", label:"Guilty", desc:"Feeling bad for what you did."}, {emoji:"🫤", label:"Doubtful", desc:"Unsure or questioning."}, {emoji:"😝", label:"Playful", desc:"Ready for fun and games."},  {emoji:"🤫", label:"Shy", desc:"Quiet or not wanting attention."}, {emoji:"😤", label:"Determined", desc:"Pushing through obstacles."}, {emoji:"🥸", label:"Skeptical", desc:"Not easily convinced."}, {emoji:"😇", label:"Peaceful", desc:"Calm and at ease."}, {emoji:"😕", label:"Regretful", desc:"Wishing things were different."}, {emoji:"😬", label:"Tense", desc:"Stressed or uptight."}, {emoji:"😦", label:"Worried", desc:"Concerned about something."}, {emoji:"😖", label:"Jealous", desc:"Wanting what others have."}, {emoji:"😎", label:"Relaxed", desc:"Taking it easy."}, {emoji:"😫", label:"Hopeless", desc:"Feeling like things won't get better."}
+  ];
+  let prompts = [
+    "Describe a healthy way to express this emotion.", "Use this emotion in a real-life scenario or sentence.", "Name a coping skill you could use with this emotion.", "How might someone feel in their body with this emotion?", "What could you do if this emotion feels too strong?", "How could you tell someone else you’re feeling this?", "What is an example of acting on this emotion in a positive way?", "How could a friend help you with this emotion?", "Describe a situation where this emotion is appropriate.", "What thought might go with this emotion?", "Share a nonverbal way to show this emotion.", "What color or animal would you connect with this emotion?", "Give one thing you could do to help manage this emotion.", "If you could talk to this emotion, what would you say?", "Name something you could do to calm yourself if you feel this way."
+  ];
+
+  // ========== APP STATE ===========
+  let mode = ""; // "1on1" or "group"
+  let numPlayersOrTeams = 2;
+  let playerNames = [];
+  let currentPlayerIndex = 0;
+
+  let scoresGuess = [];
+  let scoresApplied = [];
+
+  let timerLength = 60;
+  let timer = 0;
+  let timerInt = null;
+  let currentEmotion = null;
+  let round = 1; // A full round = all players/teams have had one turn
+  let appStep = "setupMode"; // "setupMode", "setupPlayers", "play", "apply"
+  let usedIndexes = [];
+  let currentPrompt = "";
+
+  // ========== UI ELEMENT GETTERS ==========
+  const gameEl = document.getElementById('game');
+  const editModalEl = document.getElementById('edit-modal');
+
+  // ========== UI RENDERING ==========
+  function render() {
+    gameEl.innerHTML = ''; // Clear previous content
+
+    if (appStep === 'setupMode') {
+      gameEl.innerHTML = `
+        <div class="card">
+          <div class="setup-label">Choose Game Mode:</div>
+          <div class="row">
+            <button class="btn" onclick="setMode('1on1')">1-on-1 Play</button>
+            <button class="btn btn-secondary" onclick="setMode('group')">Team / Group Play</button>
+          </div>
+          <div style="margin-top:25px;">
+            <div class="setup-label">Round Timer:</div>
+            <div class="row">
+              <button class="btn ${timerLength === 60 ? 'selected' : ''}" onclick="setTimerLength(60)">60 sec</button>
+              <button class="btn ${timerLength === 90 ? 'selected' : ''}" onclick="setTimerLength(90)">90 sec</button>
+            </div>
+          </div>
+          <div style="font-size:0.95rem;margin-top:30px;">
+            <span class="edit-link" onclick="openEditModal()">✏️ Edit Emotions List</span>
+          </div>
+        </div>
+      `;
+    } else if (appStep === 'setupPlayers') {
+      let inputsHTML = '';
+      if (mode === '1on1') {
+        numPlayersOrTeams = 2;
+        inputsHTML = `
+          <div class="input-group">
+            <label for="player0">Player 1 Name:</label>
+            <input type="text" id="player0" value="Player 1" maxlength="15">
+          </div>
+          <div class="input-group">
+            <label for="player1">Player 2 Name:</label>
+            <input type="text" id="player1" value="Player 2" maxlength="15">
+          </div>
+        `;
+      } else if (mode === 'group') {
+        inputsHTML = `
+          <div class="setup-label">Number of Teams:</div>
+          <div class="row" style="margin-bottom:15px;">
+            <button class="btn ${numPlayersOrTeams === 2 ? 'selected' : ''}" onclick="setNumTeams(2)">2 Teams</button>
+            <button class="btn ${numPlayersOrTeams === 3 ? 'selected' : ''}" onclick="setNumTeams(3)">3 Teams</button>
+            <button class="btn ${numPlayersOrTeams === 4 ? 'selected' : ''}" onclick="setNumTeams(4)">4 Teams</button>
+          </div>
+          <div id="team-name-inputs"></div>
+        `;
+      }
+      gameEl.innerHTML = `
+        <div class="card">
+          <div class="setup-label">${mode === '1on1' ? 'Enter Player Names' : 'Setup Teams'}</div>
+          ${inputsHTML}
+          <button class="btn btn-success" style="margin-top:15px;" onclick="collectPlayerNamesAndStart()">Let's Play!</button>
+          <button class="btn back-button" onclick="goBackToModeSelect()">Back to Mode Select</button>
+        </div>
+      `;
+      if (mode === 'group') renderTeamNameInputs(); // For group mode, render inputs after numTeams is potentially set
+    } else if (appStep === 'play' || appStep === 'apply') {
+      renderPlayScreen();
+    }
+  }
+
+  function renderTeamNameInputs() {
+    if (mode !== 'group' || !document.getElementById('team-name-inputs')) return;
+    let teamInputsHTML = '';
+    for (let i = 0; i < numPlayersOrTeams; i++) {
+      teamInputsHTML += `
+        <div class="input-group">
+          <label for="player${i}">Team ${i + 1} Name:</label>
+          <input type="text" id="player${i}" value="Team ${i + 1}" maxlength="15">
+        </div>
+      `;
+    }
+    document.getElementById('team-name-inputs').innerHTML = teamInputsHTML;
+  }
+
+  function renderScoreboard() {
+    let tableRowsHTML = '';
+    for (let i = 0; i < numPlayersOrTeams; i++) {
+      const isCurrent = i === currentPlayerIndex;
+      tableRowsHTML += `
+        <tr class="${isCurrent ? 'current-player-row' : ''}">
+          <td>${playerNames[i] || `P${i+1}`}</td>
+          <td>${scoresGuess[i]}</td>
+          <td>${scoresApplied[i]}</td>
+        </tr>
+      `;
+    }
+    return `
+      <div class="scoreboard-container">
+        <div class="scoreboard-title">Scoreboard - Round ${round}</div>
+        <table class="score-table">
+          <thead><tr><th>Player/Team</th><th>Guessed</th><th>Applied</th></tr></thead>
+          <tbody>${tableRowsHTML}</tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  function renderPlayScreen() {
+    gameEl.innerHTML = `
+      ${renderScoreboard()}
+      <div class="current-turn-indicator">It's ${playerNames[currentPlayerIndex]}'s turn to act!</div>
+      <div class="card">
+        <span class="emotion-emoji">${currentEmotion.emoji}</span>
+        <div class="emotion-label">${currentEmotion.label}</div>
+        <div class="emotion-desc">${currentEmotion.desc}</div>
+        ${appStep === 'apply' ? `<div class="prompt">${currentPrompt}</div>` : ''}
+      </div>
+      ${appStep === 'play' ? `<div class="timer" id="timer">${timer}</div>` : ''}
+      <div class="row">
+        ${appStep === 'play' ? `
+          <button class="btn btn-small" onclick="skipEmotion()">Skip</button>
+          <button class="btn btn-small btn-secondary" onclick="showHint()">Hint</button>
+          <button class="btn btn-small btn-accent" onclick="revealEmotion()">Reveal</button>
+        ` : ''}
+      </div>
+      ${appStep === 'play' ?
+        `<button class="btn btn-success" style="width:95%;margin-top:10px;" onclick="guessedCorrect()">Correct Guess!</button>` :
+        `<div class="row" style="margin-top:10px;">
+           <button class="btn btn-success" onclick="markApplied()">Mark as Applied 👍</button>
+           <button class="btn" onclick="advanceTurn()">Next Turn (No Point)</button>
+         </div>`
+      }
+      <button class="btn back-button btn-small" style="margin-top:15px;" onclick="confirmEndGame()">End Game</button>
+    `;
+  }
+
+  // ====== GAME LOGIC AND STATE HANDLERS =======
+  function setMode(m) {
+    mode = m;
+    if (m === '1on1') numPlayersOrTeams = 2;
+    else if (m === 'group') numPlayersOrTeams = 2; // Default to 2 teams for group initially
+    appStep = 'setupPlayers';
+    render();
+  }
+
+  function setTimerLength(secs) {
+    timerLength = secs;
+    render(); // Re-render setupMode to show selection
+  }
+
+  function setNumTeams(num) {
+    if (mode === 'group') {
+      numPlayersOrTeams = num;
+      renderTeamNameInputs(); // Update the input fields for team names
+      // Also, re-highlight the selected button
+      const buttons = gameEl.querySelectorAll('#setupPlayers .row button');
+      buttons.forEach(btn => btn.classList.remove('selected'));
+      if (num === 2) buttons[0].classList.add('selected');
+      if (num === 3) buttons[1].classList.add('selected');
+      if (num === 4) buttons[2].classList.add('selected');
+    }
+  }
+
+  function goBackToModeSelect() {
+    appStep = 'setupMode';
+    render();
+  }
+
+  function collectPlayerNamesAndStart() {
+    playerNames = [];
+    scoresGuess = [];
+    scoresApplied = [];
+    for (let i = 0; i < numPlayersOrTeams; i++) {
+      const nameInput = document.getElementById(`player${i}`);
+      playerNames.push(nameInput ? (nameInput.value.trim() || (mode === '1on1' ? `Player ${i+1}` : `Team ${i+1}`)) : (mode === '1on1' ? `Player ${i+1}` : `Team ${i+1}`));
+      scoresGuess.push(0);
+      scoresApplied.push(0);
+    }
+
+    if (playerNames.some(name => name.length === 0)) {
+        alert("Please enter names for all players/teams.");
+        return;
+    }
+
+    currentPlayerIndex = 0;
+    round = 1;
+    usedIndexes = [];
+    appStep = 'play';
+    pickNewEmotion();
+  }
+
+
+  function pickNewEmotion() {
+    if (usedIndexes.length >= emotions.length) {
+        alert("All emotions shown! Resetting list for more rounds or end game.");
+        usedIndexes = []; // Reset to allow replay
+        // Or could transition to an "end game" summary here
+    }
+    let idx;
+    do {
+      idx = Math.floor(Math.random() * emotions.length);
+    } while (usedIndexes.includes(idx) && usedIndexes.length < emotions.length);
+
+    usedIndexes.push(idx);
+    currentEmotion = emotions[idx];
+    timer = timerLength;
+    appStep = 'play';
+    renderPlayScreen();
+    playSound('audio-new');
+
+    if (timerInt) clearInterval(timerInt);
+    timerInt = setInterval(() => {
+      timer--;
+      const timerDisplay = document.getElementById('timer');
+      if (timerDisplay) timerDisplay.textContent = timer;
+      if (timer <= 0) {
+        clearInterval(timerInt);
+        // Timer ran out, move to therapy application for the current player
+        appStep = 'apply';
+        currentPrompt = getRandomPrompt();
+        renderPlayScreen();
+      }
+    }, 1000);
+  }
+
+  function advanceTurn() {
+    if (timerInt) clearInterval(timerInt);
+    currentPlayerIndex = (currentPlayerIndex + 1) % numPlayersOrTeams;
+    if (currentPlayerIndex === 0) { // A full cycle of turns completed
+      round++;
+    }
+    pickNewEmotion();
+  }
+
+  function skipEmotion() {
+    // Skipping means this player's turn for this emotion is over.
+    // No points awarded. Move to next player.
+    advanceTurn();
+  }
+
+  function showHint() {
+    alert("Hint: " + currentEmotion.desc); // Simple alert, could be integrated into UI
+  }
+
+  function revealEmotion() {
+    // Player gives up on guessing, move to therapy application for current player
+    if (timerInt) clearInterval(timerInt);
+    appStep = 'apply';
+    currentPrompt = getRandomPrompt();
+    renderPlayScreen();
+  }
+
+  function guessedCorrect() {
+    if (timerInt) clearInterval(timerInt);
+    scoresGuess[currentPlayerIndex]++;
+    appStep = 'apply';
+    currentPrompt = getRandomPrompt();
+    playSound('audio-correct');
+    renderPlayScreen();
+  }
+
+  function markApplied() {
+    scoresApplied[currentPlayerIndex]++;
+    // After marking applied, current player's turn for this emotion is fully done. Move to next player.
+    advanceTurn();
+  }
+
+  function confirmEndGame() {
+    if (confirm("Are you sure you want to end the current game?")) {
+      restartGame();
+    }
+  }
+
+  function restartGame() {
+    if (timerInt) clearInterval(timerInt);
+    mode = "";
+    numPlayersOrTeams = 2;
+    playerNames = [];
+    scoresGuess = [];
+    scoresApplied = [];
+    currentPlayerIndex = 0;
+    round = 1;
+    timerLength = 60;
+    appStep = 'setupMode';
+    render();
+  }
+
+  // ======= UTILS =======
+  function getRandomPrompt() {
+    if (prompts.length === 0) return "No prompts available.";
+    return prompts[Math.floor(Math.random() * prompts.length)];
+  }
+  function playSound(id) {
+    const sound = document.getElementById(id);
+    if (sound) {
+        sound.currentTime = 0;
+        sound.play().catch(e => console.warn("Sound play failed:", e)); // Use warn for non-critical errors
+    }
+  }
+
+  // ======= EDIT EMOTIONS MODAL =======
+  function openEditModal() {
+    editModalEl.style.display = 'flex';
+    renderEmotionTable();
+  }
+  function closeEditModal() {
+    editModalEl.style.display = 'none';
+  }
+  function renderEmotionTable() {
+    let t = document.getElementById('emotion-table');
+    t.innerHTML = `<thead><tr>
+      <th>Emoji</th><th>Label</th><th>Description</th><th>Del</th>
+    </tr></thead><tbody>` + emotions.map((e,i) =>
+      `<tr>
+        <td>${e.emoji}</td>
+        <td>${e.label}</td>
+        <td>${e.desc}</td>
+        <td><button class="btn btn-danger btn-small" onclick="deleteEmotion(${i})">✕</button></td>
+      </tr>`).join('') + `</tbody>`;
+  }
+  function addEmotion() {
+    const emoji = document.getElementById('new-emoji').value.trim() || '❓';
+    const label = document.getElementById('new-label').value.trim();
+    const desc = document.getElementById('new-desc').value.trim();
+    if (!label || !desc) { alert('Please enter emotion label and description.'); return; }
+    emotions.push({emoji, label, desc});
+    document.getElementById('new-emoji').value = '';
+    document.getElementById('new-label').value = '';
+    document.getElementById('new-desc').value = '';
+    renderEmotionTable();
+  }
+  function deleteEmotion(idx) {
+    if (emotions.length <= 5) { alert('Cannot delete. A minimum of 5 emotions is recommended.'); return; }
+    emotions.splice(idx,1);
+    renderEmotionTable();
+  }
+
+  // ========= INIT =========
+  window.onload = () => {
+      render(); // Initial render of the setupMode screen
+  };
+  </script>
+</body>
+</html>
